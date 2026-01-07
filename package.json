@@ -1,0 +1,11 @@
+{
+  "name": "daftar-utang-3d",
+  "version": "1.0.0",
+  "description": "Website Daftar Utang 3D Interaktif",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'No build step required for static site'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

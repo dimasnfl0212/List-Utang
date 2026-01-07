@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Utang 3D Interaktif</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        header {
+            padding: 1.5rem 2rem;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 2px solid #3b82f6;
+            z-index: 10;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+            flex-wrap: wrap;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+        
+        .left-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 15px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+        
+        .right-panel {
+            flex: 2;
+            min-width: 500px;
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        #debt-3d-scene {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title i {
+            font-size: 1.3rem;
+        }
+        
+        .debtor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .debtor-card {
+            background: rgba(51, 65, 85, 0.7);
+            border-radius: 10px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+            border-left: 4px solid #3b82f6;
+            cursor: pointer;
+        }
+        
+        .debtor-card:hover {
+            transform: translateY(-5px);
+            background: rgba(71, 85, 105, 0.8);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .debtor-card.active {
+            border-left-color: #a78bfa;
+            background: rgba(71, 85, 105, 0.9);
+        }
+        
+        .debtor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        
+        .debtor-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        .debtor-emoji {
+            font-size: 1.3rem;
+        }
+        
+        .total-debt {
+            font-size: 1.1rem;
+            color: #fbbf24;
+        }
+        
+        .debt-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+            padding-left: 0.5rem;
+        }
+        
+        .debt-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0.6rem;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .debt-desc {
+            color: #cbd5e1;
+        }
+        
+        .debt-amount {
+            color: #86efac;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #3b82f6, #6366f1);
+            color: white;
+            flex: 1;
+        }
+        
+        .btn-secondary {
+            background: rgba(71, 85, 105, 0.8);
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            flex: 1;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #2563eb, #4f46e5);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(100, 116, 139, 0.8);
+        }
+        
+        .form-container {
+            margin-top: 2rem;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 10px;
+            padding: 1.5rem;
+            display: none;
+        }
+        
+        .form-container.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #94a3b8;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #475569;
+            border-radius: 5px;
+            color: #e2e8f0;
+            font-size: 1rem;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .delete-btn {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background: linear-gradient(90deg, #dc2626, #b91c1c);
+        }
+        
+        .total-summary {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 10px;
+            padding: 1.2rem;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+        
+        .total-item {
+            text-align: center;
+        }
+        
+        .total-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.3rem;
+        }
+        
+        .total-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid #334155;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 1100px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .left-panel, .right-panel {
+                min-width: 100%;
+            }
+            
+            .right-panel {
+                min-height: 500px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+        
+        /* 3D Scene Message */
+        .scene-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-money-bill-wave"></i> Daftar Utang 3D Interaktif</h1>
+            <p class="subtitle">Kelola catatan utang dengan visualisasi 3D yang menarik - CRUD lengkap</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <h2 class="section-title"><i class="fas fa-users"></i> Daftar Peminjam</h2>
+                
+                <div class="debtor-list" id="debtorList">
+                    <!-- Debtor cards will be generated here by JavaScript -->
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="addDebtBtn">
+                        <i class="fas fa-plus-circle"></i> Tambah Utang Baru
+                    </button>
+                    <button class="btn btn-secondary" id="addDebtorBtn">
+                        <i class="fas fa-user-plus"></i> Tambah Peminjam
+                    </button>
+                </div>
+                
+                <div class="form-container" id="debtForm">
+                    <h3 class="section-title"><i class="fas fa-edit"></i> Form Utang</h3>
+                    <div class="form-group">
+                        <label for="debtorSelect">Peminjam</label>
+                        <select id="debtorSelect">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="debtDescription">Deskripsi Utang</label>
+                        <input type="text" id="debtDescription" placeholder="Contoh: Nasi Padang (Tiara)">
+                    </div>
+                    <div class="form-group">
+                        <label for="debtAmount">Jumlah (Rp)</label>
+                        <input type="number" id="debtAmount" placeholder="Contoh: 50000">
+                    </div>
+                    <div class="form-group">
+                        <label for="debtCreditor">Kreditur</label>
+                        <input type="text" id="debtCreditor" placeholder="Contoh: Tiara">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="saveDebtBtn">
+                            <i class="fas fa-save"></i> Simpan Utang
+                        </button>
+                        <button class="btn btn-secondary" id="cancelDebtBtn">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                        <button class="btn delete-btn" id="deleteDebtBtn" style="display: none;">
+                            <i class="fas fa-trash"></i> Hapus
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-container" id="debtorForm">
+                    <h3 class="section-title"><i class="fas fa-user-edit"></i> Form Peminjam</h3>
+                    <div class="form-group">
+                        <label for="debtorName">Nama Peminjam</label>
+                        <input type="text" id="debtorName" placeholder="Contoh: Akil">
+                    </div>
+                    <div class="form-group">
+                        <label for="debtorEmoji">Emoji</label>
+                        <input type="text" id="debtorEmoji" placeholder="Contoh: 💸">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" id="saveDebtorBtn">
+                            <i class="fas fa-save"></i> Simpan Peminjam
+                        </button>
+                        <button class="btn btn-secondary" id="cancelDebtorBtn">
+                            <i class="fas fa-times"></i> Batal
+                        </button>
+                        <button class="btn delete-btn" id="deleteDebtorBtn" style="display: none;">
+                            <i class="fas fa-trash"></i> Hapus Peminjam
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="total-summary">
+                    <div class="total-item">
+                        <div class="total-label">Total Utang</div>
+                        <div class="total-value" id="totalDebt">Rp 0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Jumlah Peminjam</div>
+                        <div class="total-value" id="debtorCount">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Total Catatan</div>
+                        <div class="total-value" id="debtCount">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div id="debt-3d-scene"></div>
+                <div class="scene-info">
+                    <i class="fas fa-info-circle"></i> Visualisasi 3D akan ditampilkan di sini
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Website Daftar Utang 3D Interaktif - Siap di-deploy ke Vercel</p>
+            <p>Gunakan form di panel kiri untuk menambah, mengedit, atau menghapus data utang</p>
+        </footer>
+    </div>
+
+    <script>
+        // Data awal berdasarkan input user
+        let debtData = [
+            {
+                id: 1,
+                debtor: "Akil",
+                emoji: "💸",
+                debts: [
+                    { id: 101, description: "Nasi Padang (Tiara)", amount: 50000, creditor: "Tiara" },
+                    { id: 102, description: "Gacoan (Mujak)", amount: 18000, creditor: "Mujak" },
+                    { id: 103, description: "Mie Ayam + Jajan Alfa (Muzak)", amount: 15000, creditor: "Muzak" },
+                    { id: 104, description: "Locana (Muzak)", amount: 25000, creditor: "Muzak" },
+                    { id: 105, description: "Photobox (Muzak)", amount: 9000, creditor: "Muzak" },
+                    { id: 106, description: "Wizzmie (Muzak)", amount: 2500, creditor: "Muzak" },
+                    { id: 107, description: "Warkop Agem (Muzak)", amount: 4000, creditor: "Muzak" },
+                    { id: 108, description: "JChicken (Muzak)", amount: 27500, creditor: "Muzak" },
+                    { id: 109, description: "Karaoke (Hezkya)", amount: 28000, creditor: "Hezkya" }
+                ]
+            },
+            {
+                id: 2,
+                debtor: "Tiara",
+                emoji: "💖",
+                debts: [
+                    { id: 201, description: "Ayam Geprek (Ahmad)", amount: 13000, creditor: "Ahmad" },
+                    { id: 202, description: "Tiara Ma Nadih (Mujak)", amount: 20000, creditor: "Mujak" },
+                    { id: 203, description: "JChicken (Muzak)", amount: 3000, creditor: "Muzak" },
+                    { id: 204, description: "Warkop (Muzak)", amount: 34000, creditor: "Muzak" },
+                    { id: 205, description: "Gacoan (Muzakki)", amount: 29000, creditor: "Muzakki" }
+                ]
+            },
+            {
+                id: 3,
+                debtor: "Nadih",
+                emoji: "😴",
+                debts: [
+                    { id: 301, description: "Photobox (Muzak)", amount: 9000, creditor: "Muzak" },
+                    { id: 302, description: "Wizzmie (Muzak)", amount: 12500, creditor: "Muzak" },
+                    { id: 303, description: "Mowbi (Muzak)", amount: 1000, creditor: "Muzak" },
+                    { id: 304, description: "Warkop (Muzak)", amount: 22000, creditor: "Muzak" },
+                    { id: 305, description: "Tiara Ma Nadih (Mujak)", amount: 0, creditor: "Mujak", note: "Roti Nutela" }
+                ]
+            },
+            {
+                id: 4,
+                debtor: "Rio",
+                emoji: "💔",
+                debts: [
+                    { id: 401, description: "Agem (Mujak)", amount: 22000, creditor: "Mujak" },
+                    { id: 402, description: "Photobox (Muzak)", amount: 9000, creditor: "Muzak" },
+                    { id: 403, description: "Warkop Agem (Muzak)", amount: 5000, creditor: "Muzak" }
+                ]
+            },
+            {
+                id: 5,
+                debtor: "William",
+                emoji: "😎",
+                debts: [
+                    { id: 501, description: "Locana (Muzak)", amount: 25000, creditor: "Muzak" },
+                    { id: 502, description: "Photobox (Muzak)", amount: 9000, creditor: "Muzak" }
+                ]
+            },
+            {
+                id: 6,
+                debtor: "Hezkya",
+                emoji: "😎",
+                debts: [
+                    { id: 601, description: "Nasgor (Muzak)", amount: 11000, creditor: "Muzak" },
+                    { id: 602, description: "Gacoan (Muzakki)", amount: 25500, creditor: "Muzakki" }
+                ]
+            },
+            {
+                id: 7,
+                debtor: "Ahmad",
+                emoji: "🤕",
+                debts: [
+                    { id: 701, description: "Karaoke (Hezkya)", amount: 28000, creditor: "Hezkya" },
+                    { id: 702, description: "Gacoan (Muzakki)", amount: 20000, creditor: "Muzakki" }
+                ]
+            },
+            {
+                id: 8,
+                debtor: "Mujak",
+                emoji: "😈",
+                debts: [
+                    { id: 801, description: "Karaoke (Hezkya)", amount: 28000, creditor: "Hezkya" }
+                ]
+            }
+        ];
+
+        // State management
+        let currentDebtorId = 1;
+        let currentDebtId = null;
+        let isEditingDebt = false;
+        let isEditingDebtor = false;
+        
+        // DOM Elements
+        const debtorListEl = document.getElementById('debtorList');
+        const debtorSelectEl = document.getElementById('debtorSelect');
+        const debtFormEl = document.getElementById('debtForm');
+        const debtorFormEl = document.getElementById('debtorForm');
+        const totalDebtEl = document.getElementById('totalDebt');
+        const debtorCountEl = document.getElementById('debtorCount');
+        const debtCountEl = document.getElementById('debtCount');
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            renderDebtorList();
+            updateDebtorSelect();
+            updateSummary();
+            init3DScene();
+            
+            // Event listeners for buttons
+            document.getElementById('addDebtBtn').addEventListener('click', showDebtForm);
+            document.getElementById('addDebtorBtn').addEventListener('click', showDebtorForm);
+            document.getElementById('saveDebtBtn').addEventListener('click', saveDebt);
+            document.getElementById('cancelDebtBtn').addEventListener('click', cancelDebtForm);
+            document.getElementById('deleteDebtBtn').addEventListener('click', deleteDebt);
+            document.getElementById('saveDebtorBtn').addEventListener('click', saveDebtor);
+            document.getElementById('cancelDebtorBtn').addEventListener('click', cancelDebtorForm);
+            document.getElementById('deleteDebtorBtn').addEventListener('click', deleteDebtor);
+        });
+        
+        // Render the list of debtors
+        function renderDebtorList() {
+            debtorListEl.innerHTML = '';
+            
+            debtData.forEach(debtor => {
+                const totalDebt = debtor.debts.reduce((sum, debt) => sum + debt.amount, 0);
+                
+                const debtorCard = document.createElement('div');
+                debtorCard.className = `debtor-card ${debtor.id === currentDebtorId ? 'active' : ''}`;
+                debtorCard.dataset.id = debtor.id;
+                
+                debtorCard.innerHTML = `
+                    <div class="debtor-header">
+                        <div>
+                            <span class="debtor-name">${debtor.debtor}</span>
+                            <span class="debtor-emoji">${debtor.emoji}</span>
+                        </div>
+                        <div class="total-debt">Rp ${formatNumber(totalDebt)}</div>
+                    </div>
+                    <div class="debt-list">
+                        ${debtor.debts.slice(0, 3).map(debt => `
+                            <div class="debt-item">
+                                <span class="debt-desc">${debt.description}</span>
+                                <span class="debt-amount">Rp ${formatNumber(debt.amount)}</span>
+                            </div>
+                        `).join('')}
+                        ${debtor.debts.length > 3 ? `<div class="debt-item">... dan ${debtor.debts.length - 3} utang lainnya</div>` : ''}
+                    </div>
+                `;
+                
+                debtorCard.addEventListener('click', () => {
+                    document.querySelectorAll('.debtor-card').forEach(card => card.classList.remove('active'));
+                    debtorCard.classList.add('active');
+                    currentDebtorId = debtor.id;
+                    update3DScene();
+                });
+                
+                debtorListEl.appendChild(debtorCard);
+            });
+        }
+        
+        // Update debtor select dropdown
+        function updateDebtorSelect() {
+            debtorSelectEl.innerHTML = '';
+            
+            debtData.forEach(debtor => {
+                const option = document.createElement('option');
+                option.value = debtor.id;
+                option.textContent = `${debtor.debtor} ${debtor.emoji}`;
+                debtorSelectEl.appendChild(option);
+            });
+        }
+        
+        // Update summary statistics
+        function updateSummary() {
+            let totalDebt = 0;
+            let totalDebts = 0;
+            
+            debtData.forEach(debtor => {
+                debtor.debts.forEach(debt => {
+                    totalDebt += debt.amount;
+                    totalDebts++;
+                });
+            });
+            
+            totalDebtEl.textContent = `Rp ${formatNumber(totalDebt)}`;
+            debtorCountEl.textContent = debtData.length;
+            debtCountEl.textContent = totalDebts;
+        }
+        
+        // Show debt form
+        function showDebtForm(editDebtId = null) {
+            hideAllForms();
+            debtFormEl.classList.add('active');
+            
+            if (editDebtId) {
+                // Edit existing debt
+                isEditingDebt = true;
+                currentDebtId = editDebtId;
+                
+                // Find the debt
+                let debtToEdit = null;
+                let debtorId = null;
+                
+                for (const debtor of debtData) {
+                    const debt = debtor.debts.find(d => d.id === editDebtId);
+                    if (debt) {
+                        debtToEdit = debt;
+                        debtorId = debtor.id;
+                        break;
+                    }
+                }
+                
+                if (debtToEdit) {
+                    document.getElementById('debtorSelect').value = debtorId;
+                    document.getElementById('debtDescription').value = debtToEdit.description;
+                    document.getElementById('debtAmount').value = debtToEdit.amount;
+                    document.getElementById('debtCreditor').value = debtToEdit.creditor;
+                    
+                    document.getElementById('deleteDebtBtn').style.display = 'block';
+                }
+            } else {
+                // Add new debt
+                isEditingDebt = false;
+                currentDebtId = null;
+                document.getElementById('debtorSelect').value = currentDebtorId;
+                document.getElementById('debtDescription').value = '';
+                document.getElementById('debtAmount').value = '';
+                document.getElementById('debtCreditor').value = '';
+                document.getElementById('deleteDebtBtn').style.display = 'none';
+            }
+        }
+        
+        // Show debtor form
+        function showDebtorForm(editDebtorId = null) {
+            hideAllForms();
+            debtorFormEl.classList.add('active');
+            
+            if (editDebtorId) {
+                // Edit existing debtor
+                isEditingDebtor = true;
+                currentDebtorId = editDebtorId;
+                
+                const debtorToEdit = debtData.find(d => d.id === editDebtorId);
+                if (debtorToEdit) {
+                    document.getElementById('debtorName').value = debtorToEdit.debtor;
+                    document.getElementById('debtorEmoji').value = debtorToEdit.emoji;
+                    document.getElementById('deleteDebtorBtn').style.display = 'block';
+                }
+            } else {
+                // Add new debtor
+                isEditingDebtor = false;
+                document.getElementById('debtorName').value = '';
+                document.getElementById('debtorEmoji').value = '😀';
+                document.getElementById('deleteDebtorBtn').style.display = 'none';
+            }
+        }
+        
+        // Hide all forms
+        function hideAllForms() {
+            debtFormEl.classList.remove('active');
+            debtorFormEl.classList.remove('active');
+        }
+        
+        // Save debt (create or update)
+        function saveDebt() {
+            const debtorId = parseInt(document.getElementById('debtorSelect').value);
+            const description = document.getElementById('debtDescription').value.trim();
+            const amount = parseInt(document.getElementById('debtAmount').value) || 0;
+            const creditor = document.getElementById('debtCreditor').value.trim();
+            
+            if (!description || !creditor || amount < 0) {
+                alert('Harap isi semua field dengan benar!');
+                return;
+            }
+            
+            const debtor = debtData.find(d => d.id === debtorId);
+            
+            if (isEditingDebt && currentDebtId) {
+                // Update existing debt
+                const debtIndex = debtor.debts.findIndex(d => d.id === currentDebtId);
+                if (debtIndex !== -1) {
+                    debtor.debts[debtIndex] = {
+                        id: currentDebtId,
+                        description,
+                        amount,
+                        creditor
+                    };
+                }
+            } else {
+                // Add new debt
+                const newDebtId = Math.max(...debtData.flatMap(d => d.debts.map(debt => debt.id))) + 1;
+                debtor.debts.push({
+                    id: newDebtId,
+                    description,
+                    amount,
+                    creditor
+                });
+            }
+            
+            // Update UI
+            renderDebtorList();
+            updateSummary();
+            update3DScene();
+            cancelDebtForm();
+            
+            // Show success message
+            alert(isEditingDebt ? 'Utang berhasil diperbarui!' : 'Utang baru berhasil ditambahkan!');
+        }
+        
+        // Save debtor (create or update)
+        function saveDebtor() {
+            const name = document.getElementById('debtorName').value.trim();
+            const emoji = document.getElementById('debtorEmoji').value.trim();
+            
+            if (!name) {
+                alert('Harap isi nama peminjam!');
+                return;
+            }
+            
+            if (isEditingDebtor && currentDebtorId) {
+                // Update existing debtor
+                const debtorIndex = debtData.findIndex(d => d.id === currentDebtorId);
+                if (debtorIndex !== -1) {
+                    debtData[debtorIndex].debtor = name;
+                    debtData[debtorIndex].emoji = emoji;
+                }
+            } else {
+                // Add new debtor
+                const newDebtorId = Math.max(...debtData.map(d => d.id)) + 1;
+                debtData.push({
+                    id: newDebtorId,
+                    debtor: name,
+                    emoji: emoji,
+                    debts: []
+                });
+                
+                currentDebtorId = newDebtorId;
+            }
+            
+            // Update UI
+            renderDebtorList();
+            updateDebtorSelect();
+            updateSummary();
+            update3DScene();
+            cancelDebtorForm();
+            
+            // Show success message
+            alert(isEditingDebtor ? 'Peminjam berhasil diperbarui!' : 'Peminjam baru berhasil ditambahkan!');
+        }
+        
+        // Delete debt
+        function deleteDebt() {
+            if (!confirm('Apakah Anda yakin ingin menghapus utang ini?')) return;
+            
+            for (const debtor of debtData) {
+                const debtIndex = debtor.debts.findIndex(d => d.id === currentDebtId);
+                if (debtIndex !== -1) {
+                    debtor.debts.splice(debtIndex, 1);
+                    break;
+                }
+            }
+            
+            // Update UI
+            renderDebtorList();
+            updateSummary();
+            update3DScene();
+            cancelDebtForm();
+            
+            alert('Utang berhasil dihapus!');
+        }
+        
+        // Delete debtor
+        function deleteDebtor() {
+            if (!confirm('Apakah Anda yakin ingin menghapus peminjam ini? Semua utangnya juga akan dihapus.')) return;
+            
+            const debtorIndex = debtData.findIndex(d => d.id === currentDebtorId);
+            if (debtorIndex !== -1) {
+                debtData.splice(debtorIndex, 1);
+                
+                // Set current debtor to the first one
+                if (debtData.length > 0) {
+                    currentDebtorId = debtData[0].id;
+                } else {
+                    currentDebtorId = null;
+                }
+            }
+            
+            // Update UI
+            renderDebtorList();
+            updateDebtorSelect();
+            updateSummary();
+            update3DScene();
+            cancelDebtorForm();
+            
+            alert('Peminjam berhasil dihapus!');
+        }
+        
+        // Cancel debt form
+        function cancelDebtForm() {
+            hideAllForms();
+            isEditingDebt = false;
+            currentDebtId = null;
+        }
+        
+        // Cancel debtor form
+        function cancelDebtorForm() {
+            hideAllForms();
+            isEditingDebtor = false;
+        }
+        
+        // Format number with thousand separators
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+        
+        // 3D Scene Initialization
+        function init3DScene() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            const container = document.getElementById('debt-3d-scene');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            renderer.setSize(width, height);
+            renderer.setClearColor(0x000000, 0);
+            container.appendChild(renderer.domElement);
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 5);
+            scene.add(directionalLight);
+            
+            // Create floating debt objects
+            const debtObjects = [];
+            
+            // Colors for different debt amounts
+            const colors = [0x3b82f6, 0x10b981, 0xf59e0b, 0xef4444, 0x8b5cf6];
+            
+            debtData.forEach((debtor, debtorIndex) => {
+                const totalDebt = debtor.debts.reduce((sum, debt) => sum + debt.amount, 0);
+                const debtSize = Math.min(Math.max(totalDebt / 50000, 0.5), 3);
+                
+                // Create a sphere for each debtor
+                const geometry = new THREE.SphereGeometry(debtSize, 16, 16);
+                const colorIndex = debtorIndex % colors.length;
+                const material = new THREE.MeshPhongMaterial({ 
+                    color: colors[colorIndex],
+                    shininess: 100,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const sphere = new THREE.Mesh(geometry, material);
+                
+                // Position in a circle
+                const angle = (debtorIndex / debtData.length) * Math.PI * 2;
+                const radius = 10;
+                sphere.position.x = Math.cos(angle) * radius;
+                sphere.position.z = Math.sin(angle) * radius;
+                sphere.position.y = debtorIndex % 2 === 0 ? 2 : -2;
+                
+                sphere.userData = { debtorId: debtor.id, debtorName: debtor.debtor, totalDebt };
+                scene.add(sphere);
+                debtObjects.push(sphere);
+                
+                // Create text label (simplified with a small plane)
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 256;
+                canvas.height = 128;
+                
+                context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                
+                context.font = 'bold 24px Arial';
+                context.fillStyle = '#ffffff';
+                context.textAlign = 'center';
+                context.fillText(debtor.debtor, canvas.width/2, 40);
+                
+                context.font = '18px Arial';
+                context.fillStyle = '#fbbf24';
+                context.fillText(`Rp ${formatNumber(totalDebt)}`, canvas.width/2, 80);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const labelMaterial = new THREE.SpriteMaterial({ map: texture });
+                const labelSprite = new THREE.Sprite(labelMaterial);
+                labelSprite.scale.set(4, 2, 1);
+                labelSprite.position.copy(sphere.position);
+                labelSprite.position.y += debtSize + 1;
+                scene.add(labelSprite);
+            });
+            
+            camera.position.set(0, 15, 25);
+            camera.lookAt(0, 0, 0);
+            
+            // Add orbit controls
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // Rotate the debt objects
+                debtObjects.forEach((obj, index) => {
+                    obj.rotation.y += 0.01;
+                    obj.position.y += Math.sin(Date.now() * 0.001 + index) * 0.005;
+                });
+                
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                const newWidth = container.clientWidth;
+                const newHeight = container.clientHeight;
+                
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, newHeight);
+            });
+            
+            // Store scene objects for updates
+            window.debtScene = {
+                scene,
+                camera,
+                renderer,
+                controls,
+                debtObjects,
+                animate
+            };
+        }
+        
+        // Update 3D scene when data changes
+        function update3DScene() {
+            // For simplicity, we'll just highlight the active debtor in the scene
+            if (window.debtScene && window.debtScene.debtObjects) {
+                window.debtScene.debtObjects.forEach(obj => {
+                    if (obj.userData.debtorId === currentDebtorId) {
+                        obj.material.emissive = new THREE.Color(0xffff00);
+                        obj.material.emissiveIntensity = 0.3;
+                    } else {
+                        obj.material.emissive = new THREE.Color(0x000000);
+                        obj.material.emissiveIntensity = 0;
+                    }
+                });
+            }
+        }
+        
+        // Initialize 3D scene after a short delay
+        setTimeout(update3DScene, 1000);
+    </script>
+</body>
+</html>
